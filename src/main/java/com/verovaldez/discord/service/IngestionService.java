@@ -8,8 +8,8 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageHistory;
 import net.dv8tion.jda.api.entities.channel.concrete.ForumChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
-import net.dv8tion.jda.api.exceptions.RateLimitedException;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -30,14 +30,22 @@ public class IngestionService {
     public Map<String, Object> ingestForum(String forumId) {
         log.info("🚀 Iniciando ingesta del foro ID: {}", forumId);
 
-        ForumChannel forum = jda.getForumChannelById(forumId);
-        if (forum == null) {
-            log.error("❌ No se encontró el canal de foro con ID: {}", forumId);
-            throw new IllegalArgumentException("No se encontró el canal de foro con ID: " + forumId);
+        var channel = jda.getForumChannelById(forumId);
+
+        if (channel instanceof ForumChannel forum) {
+            return processForum(forum, forumId);
+        } else {
+            // Intentar como canal de texto
+            var textChannel = jda.getTextChannelById(forumId);
+            if (textChannel != null) {
+                return processTextChannel(textChannel);
+            } else {
+                throw new IllegalArgumentException("El ID no corresponde a un canal de texto o foro válido.");
+            }
         }
+    }
 
-        log.info("📋 Foro encontrado: '{}' en servidor: {}", forum.getName(), forum.getGuild().getName());
-
+    private Map<String, Object> processForum(ForumChannel forum, String forumId) {
         List<ThreadChannel> activos = forum.getThreadChannels();
         List<ThreadChannel> archivados = forum.retrieveArchivedPublicThreadChannels().complete();
 
@@ -47,6 +55,7 @@ public class IngestionService {
 
         log.info("📊 Threads encontrados: {} activos, {} archivados, {} total",
                 activos.size(), archivados.size(), allThreads.size());
+        log.info("📋 Foro encontrado: '{}' en servidor: {}", forum.getName(), forum.getGuild().getName());
 
         int saved = 0;
         int threadCount = 0;
@@ -101,6 +110,50 @@ public class IngestionService {
         return result;
     }
 
+    private Map<String, Object> processTextChannel(TextChannel channel) {
+        log.info("📋 Canal de texto encontrado: '{}' en servidor: {}", channel.getName(), channel.getGuild().getName());
+
+        List<Message> messages = fetchAllMessagesFromTextChannel(channel);
+        List<DiscordMessage> batch = new ArrayList<>();
+        int saved = 0;
+
+        for (Message m : messages) {
+            DiscordMessage dm = new DiscordMessage();
+            dm.setId(m.getId());
+            dm.setGuildId(channel.getGuild().getId());
+            dm.setForumId(channel.getId());      // el "forumId" se usa genéricamente como "channelId"
+            dm.setThreadId(null);
+            dm.setThreadName(channel.getName());
+            dm.setAuthorId(m.getAuthor().getId());
+            dm.setAuthorName(m.getAuthor().getName());
+            dm.setContent(m.getContentRaw());
+            dm.setCreatedAt(m.getTimeCreated());
+
+            batch.add(dm);
+            saved++;
+
+            // Guardar en lotes
+            if (batch.size() >= 100) {
+                repository.saveAll(batch);
+                log.debug("💾 Guardado lote de {} mensajes", batch.size());
+                batch.clear();
+            }
+        }
+
+        // Guardar mensajes restantes
+        if (!batch.isEmpty()) {
+            repository.saveAll(batch);
+            log.debug("💾 Guardado lote final de {} mensajes", batch.size());
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("messages_saved", saved);
+        result.put("channel_name", channel.getName());
+
+        log.info("🎉 Ingesta de canal completada. Mensajes: {}", saved);
+        return result;
+    }
+
     private List<Message> fetchAllMessagesWithRetry(ThreadChannel thread) {
         for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
@@ -131,6 +184,43 @@ public class IngestionService {
             var action = (before == null)
                     ? MessageHistory.getHistoryFromBeginning(thread)
                     : MessageHistory.getHistoryBefore(thread, before);
+
+            var batch = action.limit(BATCH_SIZE).complete();
+            List<Message> messages = batch.getRetrievedHistory();
+
+            if (messages.isEmpty()) {
+                log.debug("📭 No hay más mensajes. Páginas procesadas: {}", pageCount);
+                break;
+            }
+
+            allMessages.addAll(messages);
+            before = messages.getLast().getId();
+
+            log.debug("📄 Página {}: {} mensajes (total: {})", pageCount, messages.size(), allMessages.size());
+
+            // Pausa entre páginas para evitar rate limits
+            if (pageCount % 5 == 0) { // Cada 5 páginas, pausa extra
+                smartSleep(BASE_DELAY_MS * 2);
+            } else {
+                smartSleep(BASE_DELAY_MS / 2); // Pausa corta entre páginas
+            }
+        }
+
+        return allMessages;
+    }
+
+    private List<Message> fetchAllMessagesFromTextChannel(TextChannel channel) {
+        List<Message> allMessages = new ArrayList<>();
+        String before = null;
+        int pageCount = 0;
+
+        log.debug("📥 Iniciando fetch de mensajes para canal: {}", channel.getName());
+
+        while (true) {
+            pageCount++;
+            var action = (before == null)
+                    ? MessageHistory.getHistoryFromBeginning(channel)
+                    : MessageHistory.getHistoryBefore(channel, before);
 
             var batch = action.limit(BATCH_SIZE).complete();
             List<Message> messages = batch.getRetrievedHistory();
