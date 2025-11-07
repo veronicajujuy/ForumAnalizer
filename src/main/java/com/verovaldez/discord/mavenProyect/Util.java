@@ -1,4 +1,4 @@
-package com.verovaldez.discord;
+package com.verovaldez.discord.mavenProyect;
 
 public class Util {
     public static String escapeCsv(String s) {

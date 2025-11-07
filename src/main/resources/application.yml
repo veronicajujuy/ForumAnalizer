@@ -1,0 +1,26 @@
+spring:
+  # Configuración MySQL (usando variables del .env)
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/discord_analytics?useSSL=false&serverTimezone=UTC}
+    username: ${DB_USER:root}
+    password: ${DB_PASS:garfield}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update  # Actualiza las tablas automáticamente
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+    show-sql: true  # Muestra las consultas SQL en logs
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+
+server:
+  port: 8080
+
+app:
+  discord:
+    token: ${DISCORD_TOKEN}
+    guild-id: ${GUILD_ID:}
+    tz: ${APP_TZ:America/Argentina/Buenos_Aires}

@@ -1,4 +1,4 @@
-package com.verovaldez.discord;
+package com.verovaldez.discord.mavenProyect;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;

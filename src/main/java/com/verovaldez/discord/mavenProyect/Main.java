@@ -1,4 +1,4 @@
-package com.verovaldez.discord;
+package com.verovaldez.discord.mavenProyect;
 
 import io.github.cdimascio.dotenv.Dotenv;
 import net.dv8tion.jda.api.JDA;

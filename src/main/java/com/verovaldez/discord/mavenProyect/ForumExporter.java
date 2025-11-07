@@ -1,4 +1,4 @@
-package com.verovaldez.discord;
+package com.verovaldez.discord.mavenProyect;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;

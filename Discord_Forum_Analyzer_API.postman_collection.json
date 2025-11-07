@@ -1,0 +1,323 @@
+{
+	"info": {
+		"_postman_id": "discord-forum-analyzer",
+		"name": "Discord Forum Analyzer API",
+		"description": "Colección completa para probar los endpoints del analizador de foros de Discord",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "discord-analyzer"
+	},
+	"item": [
+		{
+			"name": "🔄 Ingestion",
+			"item": [
+				{
+					"name": "Ingest Forum Data",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/ingest/forum/{{forum_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"ingest",
+								"forum",
+								"{{forum_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📊 Analytics",
+			"item": [
+				{
+					"name": "Get Participants (All Time)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/forums/{{forum_id}}/participants",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"forums",
+								"{{forum_id}}",
+								"participants"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Participants (Date Range)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/forums/{{forum_id}}/participants?from={{date_from}}&to={{date_to}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"forums",
+								"{{forum_id}}",
+								"participants"
+							],
+							"query": [
+								{
+									"key": "from",
+									"value": "{{date_from}}"
+								},
+								{
+									"key": "to",
+									"value": "{{date_to}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Cadence (All Time)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/forums/{{forum_id}}/cadence",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"forums",
+								"{{forum_id}}",
+								"cadence"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Cadence (Date Range)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/forums/{{forum_id}}/cadence?from={{date_from}}&to={{date_to}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"forums",
+								"{{forum_id}}",
+								"cadence"
+							],
+							"query": [
+								{
+									"key": "from",
+									"value": "{{date_from}}"
+								},
+								{
+									"key": "to",
+									"value": "{{date_to}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Hourly Activity (All Time)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/forums/{{forum_id}}/hourly",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"forums",
+								"{{forum_id}}",
+								"hourly"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Hourly Activity (Date Range)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/forums/{{forum_id}}/hourly?from={{date_from}}&to={{date_to}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"forums",
+								"{{forum_id}}",
+								"hourly"
+							],
+							"query": [
+								{
+									"key": "from",
+									"value": "{{date_from}}"
+								},
+								{
+									"key": "to",
+									"value": "{{date_to}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get FAQs (Top 20, All Time)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/forums/{{forum_id}}/faqs",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"forums",
+								"{{forum_id}}",
+								"faqs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get FAQs (Top 5, Date Range)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/forums/{{forum_id}}/faqs?top=5&from={{date_from}}&to={{date_to}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"forums",
+								"{{forum_id}}",
+								"faqs"
+							],
+							"query": [
+								{
+									"key": "top",
+									"value": "5"
+								},
+								{
+									"key": "from",
+									"value": "{{date_from}}"
+								},
+								{
+									"key": "to",
+									"value": "{{date_to}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get FAQs (Custom Top N)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/forums/{{forum_id}}/faqs?top={{faq_top_n}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"forums",
+								"{{forum_id}}",
+								"faqs"
+							],
+							"query": [
+								{
+									"key": "top",
+									"value": "{{faq_top_n}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "forum_id",
+			"value": "1436006674623365273",
+			"type": "string"
+		},
+		{
+			"key": "date_from",
+			"value": "2024-11-01T00:00:00-03:00",
+			"type": "string"
+		},
+		{
+			"key": "date_to",
+			"value": "2024-11-07T23:59:59-03:00",
+			"type": "string"
+		},
+		{
+			"key": "faq_top_n",
+			"value": "10",
+			"type": "string"
+		}
+	]
+}
