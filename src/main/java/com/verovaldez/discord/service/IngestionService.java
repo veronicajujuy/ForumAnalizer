@@ -10,6 +10,7 @@ import net.dv8tion.jda.api.entities.MessageHistory;
 import net.dv8tion.jda.api.entities.channel.concrete.ForumChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -46,6 +47,7 @@ public class IngestionService {
     }
 
     private Map<String, Object> processForum(ForumChannel forum, String forumId) {
+        log.info("chequeando que llega por el foro", forum, forumId);
         List<ThreadChannel> activos = forum.getThreadChannels();
         List<ThreadChannel> archivados = forum.retrieveArchivedPublicThreadChannels().complete();
 
@@ -118,16 +120,7 @@ public class IngestionService {
         int saved = 0;
 
         for (Message m : messages) {
-            DiscordMessage dm = new DiscordMessage();
-            dm.setId(m.getId());
-            dm.setGuildId(channel.getGuild().getId());
-            dm.setForumId(channel.getId());      // el "forumId" se usa genéricamente como "channelId"
-            dm.setThreadId(null);
-            dm.setThreadName(channel.getName());
-            dm.setAuthorId(m.getAuthor().getId());
-            dm.setAuthorName(m.getAuthor().getName());
-            dm.setContent(m.getContentRaw());
-            dm.setCreatedAt(m.getTimeCreated());
+            DiscordMessage dm = getDiscordMessage(channel, m);
 
             batch.add(dm);
             saved++;
@@ -152,6 +145,21 @@ public class IngestionService {
 
         log.info("🎉 Ingesta de canal completada. Mensajes: {}", saved);
         return result;
+    }
+
+    @NotNull
+    private static DiscordMessage getDiscordMessage(TextChannel channel, Message m) {
+        DiscordMessage dm = new DiscordMessage();
+        dm.setId(m.getId());
+        dm.setGuildId(channel.getGuild().getId());
+        dm.setForumId(channel.getId());      // el "forumId" se usa genéricamente como "channelId"
+        dm.setThreadId(null);
+        dm.setThreadName(channel.getName());
+        dm.setAuthorId(m.getAuthor().getId());
+        dm.setAuthorName(m.getAuthor().getName());
+        dm.setContent(m.getContentRaw());
+        dm.setCreatedAt(m.getTimeCreated());
+        return dm;
     }
 
     private List<Message> fetchAllMessagesWithRetry(ThreadChannel thread) {
@@ -189,14 +197,14 @@ public class IngestionService {
             List<Message> messages = batch.getRetrievedHistory();
 
             if (messages.isEmpty()) {
-                log.debug("📭 No hay más mensajes. Páginas procesadas: {}", pageCount);
+                log.info("📭 No hay más mensajes. Páginas procesadas: {}", pageCount);
                 break;
             }
 
             allMessages.addAll(messages);
             before = messages.getLast().getId();
 
-            log.debug("📄 Página {}: {} mensajes (total: {})", pageCount, messages.size(), allMessages.size());
+            log.info("📄 Página {}: {} mensajes (total: {})", pageCount, messages.size(), allMessages.size());
 
             // Pausa entre páginas para evitar rate limits
             if (pageCount % 5 == 0) { // Cada 5 páginas, pausa extra
@@ -226,14 +234,14 @@ public class IngestionService {
             List<Message> messages = batch.getRetrievedHistory();
 
             if (messages.isEmpty()) {
-                log.debug("📭 No hay más mensajes. Páginas procesadas: {}", pageCount);
+                log.info("📭 No hay más mensajes. Páginas procesadas: {}", pageCount);
                 break;
             }
 
             allMessages.addAll(messages);
             before = messages.getLast().getId();
 
-            log.debug("📄 Página {}: {} mensajes (total: {})", pageCount, messages.size(), allMessages.size());
+            log.info("📄 Página {}: {} mensajes (total: {})", pageCount, messages.size(), allMessages.size());
 
             // Pausa entre páginas para evitar rate limits
             if (pageCount % 5 == 0) { // Cada 5 páginas, pausa extra
