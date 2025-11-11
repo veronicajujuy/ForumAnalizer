@@ -1,6 +1,7 @@
 package com.verovaldez.discord.service;
 
 import com.verovaldez.discord.model.DiscordMessage;
+import com.verovaldez.discord.model.TypeChannel;
 import com.verovaldez.discord.repository.DiscordMessageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,7 +48,7 @@ public class IngestionService {
     }
 
     private Map<String, Object> processForum(ForumChannel forum, String forumId) {
-        log.info("chequeando que llega por el foro", forum, forumId);
+        log.info("chequeando que llega por el foro '{} {}' nombre '{}' canal {} ", forum, forumId, forum.getName(), forum.getGuild().getName());
         List<ThreadChannel> activos = forum.getThreadChannels();
         List<ThreadChannel> archivados = forum.retrieveArchivedPublicThreadChannels().complete();
 
@@ -75,12 +76,15 @@ public class IngestionService {
                 DiscordMessage dm = new DiscordMessage();
                 dm.setId(m.getId());
                 dm.setGuildId(m.getGuild().getId());
-                dm.setForumId(forumId);
+                dm.setGuildName(forum.getGuild().getName());
+                dm.setForumId(forum.getId());
+                dm.setForumName(forum.getName());
                 dm.setThreadId(th.getId());
                 dm.setThreadName(th.getName());
                 dm.setAuthorId(m.getAuthor().getId());
                 dm.setAuthorName(m.getAuthor().getName());
                 dm.setContent(m.getContentRaw());
+                dm.setTypeChannel(TypeChannel.FORUM);
                 dm.setCreatedAt(m.getTimeCreated());
 
                 batch.add(dm);
@@ -152,12 +156,15 @@ public class IngestionService {
         DiscordMessage dm = new DiscordMessage();
         dm.setId(m.getId());
         dm.setGuildId(channel.getGuild().getId());
+        dm.setGuildName(channel.getGuild().getName());
         dm.setForumId(channel.getId());      // el "forumId" se usa genéricamente como "channelId"
+        dm.setForumName(channel.getName());
         dm.setThreadId(null);
         dm.setThreadName(channel.getName());
         dm.setAuthorId(m.getAuthor().getId());
         dm.setAuthorName(m.getAuthor().getName());
         dm.setContent(m.getContentRaw());
+        dm.setTypeChannel(TypeChannel.TEXT);
         dm.setCreatedAt(m.getTimeCreated());
         return dm;
     }
@@ -267,5 +274,9 @@ public class IngestionService {
             log.warn("⚠️ Sleep interrumpido: {}", e.getMessage());
             Thread.currentThread().interrupt();
         }
+    }
+
+    public List<DiscordMessage> allMessages(){
+        return repository.findAll();
     }
 }

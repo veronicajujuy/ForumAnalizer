@@ -1,5 +1,6 @@
 package com.verovaldez.discord.controller;
 
+import com.verovaldez.discord.model.DiscordMessage;
 import com.verovaldez.discord.service.AnaliticsService;
 import com.verovaldez.discord.service.IngestionService;
 import lombok.RequiredArgsConstructor;
@@ -7,6 +8,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -20,6 +22,12 @@ public class ForumController {
     @PostMapping("/ingest/forum/{forumId}")
     public Map<String,Object> ingest(@PathVariable String forumId) {
         return ingestionService.ingestForum(forumId);
+    }
+
+    // findall
+    @GetMapping("/raw/messages")
+    public List<DiscordMessage> getAll() {
+        return ingestionService.allMessages();
     }
 
     // participantes unicos
