@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageHistory;
 import net.dv8tion.jda.api.entities.channel.concrete.ForumChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
@@ -170,18 +169,19 @@ public class IngestionService {
     }
 
     private List<Message> fetchAllMessagesWithRetry(ThreadChannel thread) {
-        for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        for (int attempt = 0; attempt < MAX_RETRIES; attempt++) {
+            int attemptNum = attempt + 1;
             try {
                 return fetchAllMessages(thread);
             } catch (Exception e) {
                 log.error("❌ Error en intento {}/{} para thread '{}': {}",
-                        attempt, MAX_RETRIES, thread.getName(), e.getMessage());
-                if (attempt == MAX_RETRIES) {
-                    log.error("💥 Falló después de {} intentos. Saltando thread '{}'",
+                        attemptNum, MAX_RETRIES, thread.getName(), e.getMessage());
+                if (attemptNum == MAX_RETRIES) {
+                    log.error("💥 Falló después de {} intentos. Saltando thread '{}",
                             MAX_RETRIES, thread.getName());
                     return new ArrayList<>();
                 }
-                smartSleep(1000 * attempt); // Backoff exponencial
+                smartSleep(1000L * attemptNum); // Backoff exponencial
             }
         }
         return new ArrayList<>();
@@ -189,73 +189,40 @@ public class IngestionService {
 
     private List<Message> fetchAllMessages(ThreadChannel thread) {
         List<Message> allMessages = new ArrayList<>();
-        String before = null;
-        int pageCount = 0;
-
         log.debug("📥 Iniciando fetch de mensajes para thread: {}", thread.getName());
-
-        while (true) {
-            pageCount++;
-            var action = (before == null)
-                    ? MessageHistory.getHistoryFromBeginning(thread)
-                    : MessageHistory.getHistoryBefore(thread, before);
-
-            var batch = action.limit(BATCH_SIZE).complete();
-            List<Message> messages = batch.getRetrievedHistory();
-
-            if (messages.isEmpty()) {
-                log.info("📭 No hay más mensajes. Páginas procesadas: {}", pageCount);
-                break;
+        try {
+            int counter = 0;
+            for (Message m : thread.getIterableHistory()) {
+                allMessages.add(m);
+                counter++;
+                if (counter % BATCH_SIZE == 0) {
+                    log.info("📄 Recuperados {} mensajes (total: {})", counter, allMessages.size());
+                    smartSleep(BASE_DELAY_MS);
+                }
             }
-
-            allMessages.addAll(messages);
-            before = messages.getLast().getId();
-
-            log.info("📄 Página {}: {} mensajes (total: {})", pageCount, messages.size(), allMessages.size());
-
-            // Pausa entre páginas para evitar rate limits
-            if (pageCount % 5 == 0) { // Cada 5 páginas, pausa extra
-                smartSleep(BASE_DELAY_MS * 2);
-            } else {
-                smartSleep(BASE_DELAY_MS / 2); // Pausa corta entre páginas
-            }
+            log.info("📭 No hay más mensajes en thread '{}'. Mensajes totales: {}", thread.getName(), allMessages.size());
+        } catch (Exception e) {
+            log.error("❌ Error recuperando historial del thread {}: {}", thread.getName(), e.getMessage(), e);
         }
-
         return allMessages;
     }
 
     private List<Message> fetchAllMessagesFromTextChannel(TextChannel channel) {
         List<Message> allMessages = new ArrayList<>();
-        String before = null;
-        int pageCount = 0;
-
         log.debug("📥 Iniciando fetch de mensajes para canal: {}", channel.getName());
-
-        while (true) {
-            pageCount++;
-            var action = (before == null)
-                    ? MessageHistory.getHistoryFromBeginning(channel)
-                    : MessageHistory.getHistoryBefore(channel, before);
-
-            var batch = action.limit(BATCH_SIZE).complete();
-            List<Message> messages = batch.getRetrievedHistory();
-
-            if (messages.isEmpty()) {
-                log.info("📭 No hay más mensajes. Páginas procesadas: {}", pageCount);
-                break;
+        try {
+            int counter = 0;
+            for (Message m : channel.getIterableHistory()) {
+                allMessages.add(m);
+                counter++;
+                if (counter % BATCH_SIZE == 0) {
+                    log.info("📄 Recuperados {} mensajes (total: {})", counter, allMessages.size());
+                    smartSleep(BASE_DELAY_MS);
+                }
             }
-
-            allMessages.addAll(messages);
-            before = messages.getLast().getId();
-
-            log.info("📄 Página {}: {} mensajes (total: {})", pageCount, messages.size(), allMessages.size());
-
-            // Pausa entre páginas para evitar rate limits
-            if (pageCount % 5 == 0) { // Cada 5 páginas, pausa extra
-                smartSleep(BASE_DELAY_MS * 2);
-            } else {
-                smartSleep(BASE_DELAY_MS / 2); // Pausa corta entre páginas
-            }
+            log.info("📭 No hay más mensajes en canal '{}'. Mensajes totales: {}", channel.getName(), allMessages.size());
+        } catch (Exception e) {
+            log.error("❌ Error recuperando historial del canal {}: {}", channel.getName(), e.getMessage(), e);
         }
 
         return allMessages;
@@ -279,4 +246,4 @@ public class IngestionService {
     public List<DiscordMessage> allMessages(){
         return repository.findAll();
     }
-}
+} 
